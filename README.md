@@ -1,36 +1,43 @@
-# IoT Sensor Data Simulation with Kubernetes and Kafka
+# IoT Data Simulation and Streaming to BigQuery
 
-## Overview
+This repository contains the code and configurations for simulating IoT sensor data, streaming it to a Kafka topic, processing it with PySpark, and storing the results in a BigQuery table. The infrastructure is managed using Terraform on Google Cloud Platform (GCP) and Kubernetes.
 
-This project demonstrates the deployment of an IoT sensor data simulator on a Kubernetes cluster hosted on Google Cloud Platform (GCP). The infrastructure is defined and managed using Terraform, and the deployment includes setting up Kafka and Zookeeper for data streaming and storage.
+## Directory Structure
+- `iot_data_simulation/`: Contains the Python script to simulate IoT data and send it to Kafka.
+- `kafka_to_spark/`: Contains the Dockerfile and PySpark script to read from Kafka and write to BigQuery.
+- `terraform-gcp/`: Contains the Terraform configuration files for setting up the necessary GCP and Kubernetes resources.
 
 ## Components
+### Terraform (terraform-gcp/)
+This directory contains the Terraform scripts to set up:
+1. A GCP Kubernetes cluster.
+2. Kubernetes deployments for Kafka, Zookeeper, IoT data simulator, and PySpark job.
+3. BigQuery dataset and table.
 
-1. **Google Cloud Provider Configuration**
-   - Configures Google Cloud provider in Terraform using service account credentials.
-   - Specifies the project and region for the resources.
+#### Key Files:
+- `main.tf`: Main Terraform configuration file setting up all the necessary infrastructure.
 
-2. **Kubernetes Provider Configuration**
-   - Configures the Kubernetes provider to interact with the GKE (Google Kubernetes Engine) cluster.
-   - Utilizes the cluster endpoint and authentication details.
+### IoT Data Simulation (iot_data_simulation/)
+This directory contains a Python script that simulates IoT sensor data and sends it to a Kafka topic.
 
-3. **Google Kubernetes Engine (GKE) Cluster**
-   - Creates a GKE cluster named `primary-cluster` with an initial node count of 3.
-   - Configures node pool with preemptible nodes to save costs.
+#### Key Files:
+- `iot_data_simulation.py`: Python script for generating and sending sensor data to Kafka.
 
-4. **Kubernetes Namespace**
-   - Creates a namespace `iot-namespace` to logically separate the IoT application resources.
+### Kafka to Spark Streaming (kafka_to_spark/)
+This directory contains the Dockerfile and PySpark script to read data from Kafka, process it, and write it to BigQuery.
 
-5. **Kafka and Zookeeper Deployments**
-   - Deploys Kafka and Zookeeper within the `iot-namespace`.
-   - Configures environment variables for Kafka and Zookeeper to communicate and function correctly.
-   - Exposes Kafka and Zookeeper services within the cluster.
+#### Key Files:
+- `Dockerfile`: Dockerfile to create an image with PySpark and required dependencies.
+- `spark_kafka_to_bigquery.py`: PySpark script to read from Kafka, process the data, and write it to BigQuery.
 
-6. **IoT Simulator Deployment**
-   - Deploys the IoT simulator application within the `iot-namespace`.
-   - The simulator generates random sensor data and sends it to Kafka.
-   - Configures environment variables to connect the simulator to Kafka.
+## Infrastructure Setup
+1. **Kubernetes Cluster**: The Terraform script sets up a Kubernetes cluster on GCP.
+2. **Kafka & Zookeeper**: Kafka and Zookeeper deployments are created to handle the messaging.
+3. **IoT Data Simulator**: A deployment for the IoT data simulator which generates and sends data to Kafka.
+4. **PySpark Job**: A deployment for the PySpark job which processes Kafka messages and stores them in BigQuery.
+5. **BigQuery**: A BigQuery dataset and table are created to store the processed data.
 
-7. **Kafka Topic Creation Job**
-   - Creates a Kubernetes job to set up necessary Kafka topics for storing sensor data.
-   - Ensures topics are created with appropriate configurations.
+## Running the Simulation
+1. **Deploy IoT Simulator**: Deploy the IoT data simulator to generate sensor data.
+2. **Deploy PySpark Job**: Deploy the PySpark job to process Kafka messages and write to BigQuery.
+3. **Set up the Infrastructure**: Run the Terraform scripts to set up the required infrastructure.
