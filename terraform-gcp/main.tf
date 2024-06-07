@@ -251,3 +251,112 @@ resource "kubernetes_job" "kafka_topic_creation" {
   }
 }
 
+resource "google_bigquery_dataset" "iot_dataset" {
+  dataset_id = "iot_dataset"
+  project    = var.project
+}
+
+resource "google_bigquery_table" "iot_table" {
+  table_id   = "iot_table"
+  dataset_id = google_bigquery_dataset.iot_dataset.dataset_id
+  project    = var.project
+
+  schema = <<EOF
+[
+  {
+    "name": "sensor_id",
+    "type": "INTEGER",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "temperature",
+    "type": "FLOAT",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "humidity",
+    "type": "FLOAT",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "motion",
+    "type": "BOOLEAN",
+    "mode": "REQUIRED"
+  },
+  {
+    "name": "timestamp",
+    "type": "TIMESTAMP",
+    "mode": "REQUIRED"
+  }
+]
+EOF
+}
+
+resource "kubernetes_deployment" "pyspark" {
+  metadata {
+    name      = "pyspark-job"
+    namespace = kubernetes_namespace.iot.metadata[0].name
+  }
+  spec {
+    replicas = 1
+    selector {
+      match_labels = {
+        app = "pyspark-job"
+      }
+    }
+    template {
+      metadata {
+        labels = {
+          app = "pyspark-job"
+        }
+      }
+      spec {
+        container {
+          name  = "pyspark-job"
+          image = "gcr.io/airy-runway-128422/pyspark-job:latest" # Update with your Docker image
+          env {
+            name  = "GOOGLE_APPLICATION_CREDENTIALS"
+            value = "/credentials/credentials.json"
+          }
+          volume_mount {
+            mount_path = "/credentials"
+            name       = "gcp-credentials"
+          }
+        }
+        volume {
+          name = "gcp-credentials"
+          secret {
+            secret_name = "gcp-credentials"
+          }
+        }
+      }
+    }
+  }
+}
+
+resource "kubernetes_service" "pyspark_job" {
+  metadata {
+    name      = "pyspark-job-service"
+    namespace = kubernetes_namespace.iot.metadata[0].name
+  }
+  spec {
+    selector = {
+      app = "pyspark-job"
+    }
+    port {
+      port        = 80
+      target_port = 8080
+    }
+  }
+}
+
+resource "kubernetes_secret" "gcp_credentials" {
+  metadata {
+    name      = "gcp-credentials"
+    namespace = kubernetes_namespace.iot.metadata[0].name
+  }
+  data = {
+    "credentials.json" = file("~/terraform-key.json")
+  }
+}
+
